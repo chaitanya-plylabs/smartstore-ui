@@ -31,16 +31,41 @@ The following commands/events can be published by the IOT devices
 <b>ItemRemovedFromCartEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}", "skuId": "${skuId}" }
 <b>CartCheckedoutEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}" }
 <b>PaymentProcessedEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}", "paymentId": "${paymentId}" }
+
+The backend is based on Domain Driven Design(DDD) architecture with "Event Sourcing" & "CQRS(Command Query Responsibility Segregation)" patterns.
+Initially introduced and made popular by programmer Eric Evans in his 2004 book, Domain-Driven Design: Tackling Complexity in the Heart of Software, domain-driven design is the expansion upon and application of the domain concept, as it applies to the development of software. It aims to ease the creation of complex applications by connecting the related pieces of the software into an ever-evolving model. DDD focuses on three core principles:
+- placing the project's primary focus on the core domain and domain logic
+- basing complex designs on a model of the domain
+- initiating a creative collaboration between technical and domain experts to iteratively refine a conceptual model that addresses particular domain problems.
+
+In event sourcing, every action on a domain object will result in an Immutable event which will be persisted in an event store and the state of any domain object is calculated by left folding all the events happened till that point.
+The benefits of event sourcing are:
+- consistences between transactional data and audit data is assured
+- ability to analyze events stream and derive important business information through data analytics 
+- improves write performance, since all types of events are simply appended to the data store (no updates and no deletes).
+- event sourcing together with CQRS pattern can help us design massively scalable applications
+Its best-fit for our smartstore usecase.
+
+CQRS says - Instead of separating logic into separate layers, logic is separated based on whether it is changing an application's state or querying it. That means that executing commands (actions that potentially change an application's state) are executed by different components than those that query for the application's state. The most important reason for this separation is the fact that there are different technical and non-technical requirements for each of them. When commands are executed, the query components are (a)synchronously updated using events. This mechanism of updates through events, is what makes this architecture is extensible, scalable and ultimately more maintainable.
+
+More can be found at - 
+<a href="https://domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf" target="_blank">https://domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf</a>
+<br/>
+<a href="https://www.martinfowler.com/eaaDev/EventSourcing.html" target="_blank">https://www.martinfowler.com/eaaDev/EventSourcing.html</a>
+<br/>
+<a href="https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs" target="_blank">https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs</a>
+<br/>
+Tech Stack: Java 11, Spring Boot Webflux, Spring Boot JPA, Axon Framework, Axon Server, PosgreSQL 
 </div>
      </div>
      <div v-if="tab === 'run'" class="simulate">
        <div>
          <b>Prototype data considerations:</b> <div class="line-break"></div>
          2 Stores - Store A and Store B <div class="line-break"></div>
-         10 Users - Aarav, Vivaan, Aditya, Dhruv, Krishna, Keerthi, Naina, Oviya <div class="line-break"></div>
+         8 Users - Aarav, Vivaan, Aditya, Dhruv, Krishna, Keerthi, Naina, Oviya <div class="line-break"></div>
          10 SKUs - Steam Rice Kolam, Poha, Basmato Rice, Maida, Besan, Whole Wheat Atta, Multigrain Atta, Milk, Curd, Cheese <div class="line-break"></div>
        </div>
-       <q-select v-model="simultaneousVisits" :options="simultaneousVisitsOptions"/>
+       <q-select class="no-of-visits" v-model="simultaneousVisits" :options="simultaneousVisitsOptions" :stack-label="`Number of users`"/>
        <q-btn @click="simulate();" color="primary" class="btn">Simulate Visit(s)</q-btn>
        <div class="events">
          <div :key="index" v-for="(event, index) in events">
@@ -86,16 +111,14 @@ export default {
       events: [],
       simultaneousVisits: 1,
       simultaneousVisitsOptions: [
-        {label: "one", value: 1},
-        {label: "two", value: 2},
-        {label: "three", value: 3},
-        {label: "four", value: 4},
-        {label: "five", value: 5},
-        {label: "six", value: 6},
-        {label: "seven", value: 7},
-        {label: "eight", value: 8},
-        {label: "nine", value: 9},
-        {label: "ten", value: 10 },
+        {label: "1", value: 1},
+        {label: "2", value: 2},
+        {label: "3", value: 3},
+        {label: "4", value: 4},
+        {label: "5", value: 5},
+        {label: "6", value: 6},
+        {label: "7", value: 7},
+        {label: "8", value: 8}
       ]
     }
   },
@@ -121,10 +144,10 @@ export default {
             let action = actionBias[Math.floor(Math.random()*actionBias.length)];
             let sku = this.skus[Math.floor(Math.random()*this.skus.length)];
             if(action === 1) {
-              let promise = SmartstoreApi.addItem(store.id, cartId, sku.id).then(response => {  weight += sku.weight; price += sku.price; this.events.push({ data:`${sku.name} with price ${sku.price} added to ${user.name}'s cart, current weight: ${weight}, current price: ${price}`, color: user.color}); })
+              let promise = SmartstoreApi.addItem(store.id, cartId, sku.id).then(response => {  weight += sku.weight; price += sku.price; this.events.push({ data:`${sku.name} with price ${sku.price} added to ${user.name}'s cart, current weight: ${weight}, current price: ${Math.round(price*100)/100}`, color: user.color}); })
               promises.push(promise);
             } else if(action === 0) {
-              let promise = SmartstoreApi.removeItem(store.id, cartId, sku.id).then(response => { weight -= sku.weight; price -= sku.price; this.events.push({ data: `${sku.name} with price ${sku.price} removed from ${user.name}'s cart, current weight: ${weight}, current price: ${price}`, color: user.color});  })
+              let promise = SmartstoreApi.removeItem(store.id, cartId, sku.id).then(response => { weight -= sku.weight; price -= sku.price; this.events.push({ data: `${sku.name} with price ${sku.price} removed from ${user.name}'s cart, current weight: ${weight}, current price: ${Math.round(price*100)/100}`, color: user.color});  })
               promises.push(promise);
             }
           }
@@ -139,7 +162,7 @@ export default {
             })
           });
         });
-        }, Math.floor(Math.random()*500));
+        }, Math.floor(Math.random()*100));
 
       }
 
@@ -186,7 +209,14 @@ export default {
 }
 
 .simulate .btn {
+  margin-top: 37px;
+  margin-bottom: 40px;
+  margin-left:20px;
+}
+
+.simulate .no-of-visits {
+  width: 200px;
   margin-top: 20px;
-  margin-bottom: 20px;
+  float: left;
 }
 </style>

@@ -6,7 +6,8 @@ const SmartstoreApi = {
     addItem: (storeId, cartId, skuId) => { return axios.post(`${_baseApiUrl}/store/${storeId}/cart/${cartId}/item/${skuId}/add`, {})},
     removeItem: (storeId, cartId, skuId) => { return axios.post(`${_baseApiUrl}/store/${storeId}/cart/${cartId}/item/${skuId}/remove`, {})},
     checkout: (storeId, cartId, command) => { return axios.post(`${_baseApiUrl}/store/${storeId}/cart/${cartId}/checkout`, command)},
-    processed: (storeId, cartId, command) => { return axios.post(`${_baseApiUrl}/store/${storeId}/cart/${cartId}/processed`, command)}
+    processed: (storeId, cartId, command) => { return axios.post(`${_baseApiUrl}/store/${storeId}/cart/${cartId}/processed`, command)},
+    replenish: (storeId, constraints) => { return axios.post(`${_baseApiUrl}/store/${storeId}/replenish`, constraints) }
 }
 
 export { SmartstoreApi }

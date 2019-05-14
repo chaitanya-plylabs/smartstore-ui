@@ -8,7 +8,7 @@
      <div v-if="tab === 'about'" class="about">
        <div class="heading">Smart Checkout</div>
 <div>
-Smart checkout prevents long queues by removing the need for billing counters and enhances shopping experience by enabling customers to discover their products of choice.
+Smart checkout prevents long queues by removing the need for billing counters and also enhances shopping experience by enabling customers to discover their products of choice.
 The smartstore will be equipped with IOT sensors and a local wifi server which will be in constant communication with centralised cloud infrastructure for out of band processing.
 The IOT devices can be following: 
 1. Beaconstac's BLE Proximity Beacons to track user position 
@@ -17,26 +17,29 @@ The IOT devices can be following:
 4. A smart phone attached to physical cart which can scan products using an app that publishes corresponding events 
 
 A customer enters the store, picks one of the smart carts and scans the QR code present on smart phone attached to the cart.
-An unique virtual cart id will be assigned to that transaction and the shopping begins. 
+An unique virtual cart id will be assigned to that transaction - shopping begins. 
 Customer can pick up an item, scan the bar code using the smart phone attached and place it in the cart.
 The smart phone also captures the signals issued by BLE proxmity beacons and raise events to the local wifi server. These events will be used to predict the user's location using triangulation. 
 The weights of both carts and racks will be frequently communicated to local wifi server.
-Customer can pay through his any available payment modes and can take out his items.
+Customer can pay through available payment modes and can take home his items - shopping ends.
 Customer can view his past bills through smartstore mobile app.
 
 The following commands/events can be published by the IOT devices
-<b>CartCreatedEvent</b> { "storeId": "${storeId}", "userId": "${userId}", "cartId": "${cartId}" }
-<b>UserEnteredBeaconProximityEvent</b> { "storeId": "${storeId}", "userId": "${userId}" }
-<b>ItemAddedToCartEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}", "skuId": "${skuId}" }
-<b>ItemRemovedFromCartEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}", "skuId": "${skuId}" }
-<b>CartCheckedoutEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}" }
-<b>PaymentProcessedEvent</b>: { "storeId": "${storeId}", "cartId": "${cartId}", "paymentId": "${paymentId}" }
+<i>CartCreatedEvent</i> { "storeId": "${storeId}", "userId": "${userId}", "cartId": "${cartId}" }
+<i>UserEnteredBeaconProximityEvent</i> { "storeId": "${storeId}", "userId": "${userId}" }
+<i>ItemAddedToCartEvent</i>: { "storeId": "${storeId}", "cartId": "${cartId}", "skuId": "${skuId}" }
+<i>ItemRemovedFromCartEvent</i>: { "storeId": "${storeId}", "cartId": "${cartId}", "skuId": "${skuId}" }
+<i>CartCheckedoutEvent</i>: { "storeId": "${storeId}", "cartId": "${cartId}" }
+<i>PaymentProcessedEvent</i >: { "storeId": "${storeId}", "cartId": "${cartId}", "paymentId": "${paymentId}" }
 
+<b>Tech Design:</b>
 The backend is based on Domain Driven Design(DDD) architecture with "Event Sourcing" & "CQRS(Command Query Responsibility Segregation)" patterns.
 Initially introduced and made popular by programmer Eric Evans in his 2004 book, Domain-Driven Design: Tackling Complexity in the Heart of Software, domain-driven design is the expansion upon and application of the domain concept, as it applies to the development of software. It aims to ease the creation of complex applications by connecting the related pieces of the software into an ever-evolving model. DDD focuses on three core principles:
 - placing the project's primary focus on the core domain and domain logic
 - basing complex designs on a model of the domain
 - initiating a creative collaboration between technical and domain experts to iteratively refine a conceptual model that addresses particular domain problems.
+More on domain driven design can be found at - 
+<a href="https://domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf" target="_blank">https://domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf</a>
 
 In event sourcing, every action on a domain object will result in an Immutable event which will be persisted in an event store and the state of any domain object is calculated by left folding all the events happened till that point.
 The benefits of event sourcing are:
@@ -45,17 +48,28 @@ The benefits of event sourcing are:
 - improves write performance, since all types of events are simply appended to the data store (no updates and no deletes).
 - event sourcing together with CQRS pattern can help us design massively scalable applications
 Its best-fit for our smartstore usecase.
+More on event sourcing can be found at -
+<a href="https://www.martinfowler.com/eaaDev/EventSourcing.html" target="_blank">https://www.martinfowler.com/eaaDev/EventSourcing.html</a>
 
 CQRS says - Instead of separating logic into separate layers, logic is separated based on whether it is changing an application's state or querying it. That means that executing commands (actions that potentially change an application's state) are executed by different components than those that query for the application's state. The most important reason for this separation is the fact that there are different technical and non-technical requirements for each of them. When commands are executed, the query components are (a)synchronously updated using events. This mechanism of updates through events, is what makes this architecture is extensible, scalable and ultimately more maintainable.
-
-More can be found at - 
-<a href="https://domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf" target="_blank">https://domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf</a>
-<br/>
-<a href="https://www.martinfowler.com/eaaDev/EventSourcing.html" target="_blank">https://www.martinfowler.com/eaaDev/EventSourcing.html</a>
-<br/>
+More on cqrs can be found at - 
 <a href="https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs" target="_blank">https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs</a>
-<br/>
+
 Tech Stack: Java 11, Spring Boot Webflux, Spring Boot JPA, Axon Framework, Axon Server, PosgreSQL 
+
+<b>Security & Data Integrity </b>
+- Each IOT devices' payload will be signed using their private key certificates configured at the time of set up. The signatures will be validated at every termination server with device's public key certificate
+- The firewall settings of local wifi server will be intact.
+- The cloud infrastructure will be protected with open id connect and oauth 2 protocols.
+The local wifi server will be responsible to keep the count of sum of number of items present in the store across all racks and number of items checked out same all the time. It will raise an alaram if thats not the case and will provide rack and sku details that are causing the issue.
+To achieve this we can consider adding 2 more events:
+<i>ItemRemovedFromRackEvent</i>: { "storeId": "${storeId}", "rackId": "${rackId}", "skuId": "${skuId}" }
+<i>ItemAddedToRackEvent</i>: { "storeId": "${storeId}", "rackId": "${rackId}", "skuId": "${skuId}" }
+
+<b>Assumptions for Prototype:</b>
+- The procurement and configuration of physical devices are not considered for prototype to focus more on post-signal functionalities. 
+- For smart replenishment and smart ad modules we need reasonable scale of events which can be mimicked through simulation.
+- In "Run" section of the modules, we try to simulate real time events that will be sent by IOT devices
 </div>
      </div>
      <div v-if="tab === 'run'" class="simulate">
@@ -171,7 +185,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .about {
   padding: 20px;
   font-family: inherit;

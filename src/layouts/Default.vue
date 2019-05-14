@@ -18,10 +18,6 @@
           <q-item-side icon="movie" />
           <q-item-main label="Smart Ad"/>
         </q-item>
-        <q-item @click.native="$router.push('/smart-track')">
-          <q-item-side icon="track_changes" />
-          <q-item-main label="Smart Track" />
-        </q-item>
       </q-list>
     </q-layout-drawer>
 

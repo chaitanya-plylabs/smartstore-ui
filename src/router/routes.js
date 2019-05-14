@@ -20,13 +20,6 @@ const routes = [
     children: [
       { path: '', component: () => import('pages/SmartAd.vue') }
     ]
-  },
-  {
-    path: '/smart-track',
-    component: () => import('layouts/Default.vue'),
-    children: [
-      { path: '', component: () => import('pages/SmartTrack.vue') }
-    ]
   }
 ]
 

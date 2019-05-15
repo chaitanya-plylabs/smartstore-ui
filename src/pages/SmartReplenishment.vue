@@ -45,6 +45,7 @@ Tech Stack: Julia, CoinOptServices
           <q-input v-model="constraints.itemHoldingCost" stack-label="Holding cost per item per day" />
           <q-btn @click="replenish();" color="primary" class="btn">Replenish</q-btn>
           <div class="processing" v-if="!!loading && !processed">Processing...</div>
+          <div class="processing" v-if="!!error && !!processed">Please try again..</div>
           <div class="forecast" v-if="!!processed">
             <q-table
                 title="Forecast Table (simulated demand)"
@@ -102,13 +103,15 @@ export default {
       objectiveValue: 0,
       numberOfReplenishmentCycles: 0,
       processed: false,
-      loading: false
+      loading: false,
+      error: false
     }
   },
   methods: {
       replenish: function() {
           this.processed = false;
           this.loading = true;
+          this.error = false;
           const skuHoldingCostLookup = {};
           for(let i = 1; i <= 10; i++) {
             let id = i !== 10 ? `SKU000000${i}` : `SKU0000010`;
@@ -129,6 +132,10 @@ export default {
               this.objectiveValue = response.data.objectiveValue;
               this.numberOfReplenishmentCycles = response.data.replenishFlags.filter(x => x === 1).length;
               this.processed = true;
+          })
+          .catch(error => {
+            this.processed = true;
+            this.error = true;
           });
       },
       convertLookupToTable: function(N, lookup) {
